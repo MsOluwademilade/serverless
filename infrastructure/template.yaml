@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  GetArticlesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/functions/get-articles/index.lambda_handler
+      Runtime: python3.8
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+
+  GetArticleByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/functions/get-article-by-id/index.lambda_handler
+      Runtime: python3.8
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables:
+          STAGE: !Ref Stage
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: GlobalNewsApi
+      StageName: prod
+      DefinitionBody:
+        swagger: '2.0'
+        paths:
+          /articles:
+            get:
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetArticlesFunction.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
+          /articles/{id}:
+            get:
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetArticleByIdFunction.Arn}/invocations
+                httpMethod: POST
+                type: aws_proxy
