@@ -1,0 +1,13 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "sam-global-news"
+resolve_s3 = true
+s3_prefix = "sam-global-news"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Stage=\"prod\""
+image_repositories = []
+
+[default.global.parameters]
+region = "us-east-1"
