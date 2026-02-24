@@ -18,14 +18,29 @@ Resources:
       AttributeDefinitions:
       - AttributeName: id
         AttributeType: S
+      - AttributeName: category
+        AttributeType: S
+      - AttributeName: published
+        AttributeType: S
       KeySchema:
       - AttributeName: id
         KeyType: HASH
       BillingMode: PAY_PER_REQUEST
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
+      GlobalSecondaryIndexes:
+      - IndexName: CategoryPublishedIndex
+        KeySchema:
+        - AttributeName: category
+          KeyType: HASH
+        - AttributeName: published
+          KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
       Replicas:
       - Region: us-east-1
+        GlobalSecondaryIndexes:
+        - IndexName: CategoryPublishedIndex
         PointInTimeRecoverySpecification:
           PointInTimeRecoveryEnabled: true
         Tags:
@@ -35,6 +50,8 @@ Resources:
         - Key: Region
           Value: us-east-1
       - Region: eu-west-1
+        GlobalSecondaryIndexes:
+        - IndexName: CategoryPublishedIndex
         PointInTimeRecoverySpecification:
           PointInTimeRecoveryEnabled: true
         Tags:
@@ -57,6 +74,7 @@ Resources:
             Ref: Stage
           TABLE_NAME:
             Ref: ArticlesTable
+          INDEX_NAME: CategoryPublishedIndex
       Policies:
       - DynamoDBReadPolicy:
           TableName:
