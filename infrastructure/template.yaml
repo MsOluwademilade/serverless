@@ -12,8 +12,9 @@ Parameters:
       - prod
 
 Resources:
+  # Global DynamoDB Table
   ArticlesTable:
-    Type: AWS::DynamoDB::Table
+    Type: AWS::DynamoDB::GlobalTable
     Properties:
       TableName: !Sub Articles-${Stage}
       AttributeDefinitions:
@@ -23,9 +24,25 @@ Resources:
         - AttributeName: id
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
-      Tags:
-        - Key: Environment
-          Value: !Ref Stage
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Replicas:
+        - Region: us-east-1
+          PointInTimeRecoverySpecification:
+            PointInTimeRecoveryEnabled: true
+          Tags:
+            - Key: Environment
+              Value: !Ref Stage
+            - Key: Region
+              Value: us-east-1
+        - Region: eu-west-1
+          PointInTimeRecoverySpecification:
+            PointInTimeRecoveryEnabled: true
+          Tags:
+            - Key: Environment
+              Value: !Ref Stage
+            - Key: Region
+              Value: eu-west-1
 
   GetArticlesFunction:
     Type: AWS::Serverless::Function
@@ -96,3 +113,6 @@ Outputs:
   GetArticleByIdEndpoint:
     Description: GET /articles/{id} endpoint  
     Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/articles/{id}"
+  TableReplicationRegions:
+    Description: Regions where the table is replicated
+    Value: "us-east-1, eu-west-1"
