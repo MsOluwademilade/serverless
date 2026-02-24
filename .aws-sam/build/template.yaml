@@ -10,6 +10,22 @@ Parameters:
     - staging
     - prod
 Resources:
+  ArticlesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: Articles-${Stage}
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      Tags:
+      - Key: Environment
+        Value:
+          Ref: Stage
   GetArticlesFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -22,6 +38,12 @@ Resources:
         Variables:
           STAGE:
             Ref: Stage
+          TABLE_NAME:
+            Ref: ArticlesTable
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: ArticlesTable
       Events:
         GetArticles:
           Type: Api
@@ -29,7 +51,7 @@ Resources:
             RestApiId:
               Ref: ApiGateway
             Path: /articles
-            Method: get
+            Method: GET
     Metadata:
       SamResourceId: GetArticlesFunction
   GetArticleByIdFunction:
@@ -44,6 +66,12 @@ Resources:
         Variables:
           STAGE:
             Ref: Stage
+          TABLE_NAME:
+            Ref: ArticlesTable
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: ArticlesTable
       Events:
         GetArticleById:
           Type: Api
@@ -51,46 +79,34 @@ Resources:
             RestApiId:
               Ref: ApiGateway
             Path: /articles/{id}
-            Method: get
+            Method: GET
     Metadata:
       SamResourceId: GetArticleByIdFunction
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
-      Name: GlobalNewsApi
+      Name:
+        Fn::Sub: GlobalNewsApi-${Stage}
       StageName:
         Ref: Stage
-      DefinitionBody:
-        swagger: '2.0'
-        paths:
-          /articles:
-            get:
-              x-amazon-apigateway-integration:
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetArticlesFunction.Arn}/invocations
-                httpMethod: POST
-                type: aws_proxy
-          /articles/{id}:
-            get:
-              x-amazon-apigateway-integration:
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetArticleByIdFunction.Arn}/invocations
-                httpMethod: POST
-                type: aws_proxy
+      Cors:
+        AllowMethods: '''GET, POST, OPTIONS'''
+        AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+        AllowOrigin: '''*'''
 Outputs:
   ApiUrl:
     Description: API Gateway endpoint URL
     Value:
       Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/
-  GetArticlesFunctionArn:
-    Description: GetArticles Lambda Function ARN
+  ArticlesTableName:
+    Description: DynamoDB Table Name
     Value:
-      Fn::GetAtt:
-      - GetArticlesFunction
-      - Arn
-  GetArticleByIdFunctionArn:
-    Description: GetArticleById Lambda Function ARN
+      Ref: ArticlesTable
+  GetArticlesEndpoint:
+    Description: GET /articles endpoint
     Value:
-      Fn::GetAtt:
-      - GetArticleByIdFunction
-      - Arn
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/articles
+  GetArticleByIdEndpoint:
+    Description: GET /articles/{id} endpoint
+    Value:
+      Fn::Sub: https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/articles/{id}
